@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Algebra GM Simulation — Teacher Dashboard</title>
+
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+  background: #f0f2f5;
+  color: #222;
+  min-height: 100vh;
+}
+
+/* ========== HEADER ========== */
+.header {
+  background: linear-gradient(135deg, #1a3d6e 0%, #2e5a8f 100%);
+  color: #fff;
+  padding: 20px 30px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.header h1 {
+  font-size: 22px;
+  margin-bottom: 4px;
+}
+
+.header .subtitle {
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+/* ========== CONFIG SCREEN ========== */
+#configScreen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.config-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 40px;
+  max-width: 650px;
+  width: 100%;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  border-top: 6px solid #1a5490;
+}
+
+.config-card h1 {
+  color: #1a5490;
+  font-size: 26px;
+  margin-bottom: 8px;
+}
+
+.config-card .subtitle {
+  color: #666;
+  font-size: 15px;
+  margin-bottom: 24px;
+}
+
+.setup-steps {
+  background: #f8f9fa;
+  border-left: 4px solid #1a5490;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  border-radius: 4px;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.setup-steps ol { padding-left: 22px; }
+.setup-steps li { margin-bottom: 6px; }
+.setup-steps strong { color: #1a5490; }
+
+.form-group { margin-bottom: 18px; }
+.form-group label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #333;
+  font-size: 14px;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: 'SF Mono', Consolas, monospace;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #1a5490;
+}
+
+.load-btn {
+  width: 100%;
+  background: #1a5490;
+  color: #fff;
+  border: none;
+  padding: 14px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.load-btn:hover { background: #143d6a; }
+.load-btn:disabled { background: #aaa; cursor: not-allowed; }
+
+.error-msg {
+  color: #c62828;
+  background: #ffebee;
+  padding: 10px 14px;
+  border-radius: 4px;
+  margin-top: 12px;
+  font-size: 13px;
+  display: none;
+}
+.error-msg.show { display: block; }
+
+/* ========== DASHBOARD ========== */
+#dashboardScreen { display: none; }
+
+.dash-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* ========== FILTER BAR ========== */
+.filter-bar {
+  background: #fff;
+  padding: 16px 24px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.filter-bar label {
+  font-weight: 600;
+  color: #333;
+  font-size: 13px;
+}
+
+.filter-bar select, .filter-bar input {
+  padding: 8px 12px;
+  border: 2px solid #ddd;
+  border-radius: 5px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.filter-bar select:focus, .filter-bar input:focus {
+  outline: none;
+  border-color: #1a5490;
+}
+
+.refresh-btn {
+  background: #1a5490;
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  margin-left: auto;
+}
+
+.refresh-btn:hover { background: #143d6a; }
+
+/* ========== KPI CARDS ========== */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.kpi-card {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  border-left: 4px solid #1a5490;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.kpi-card .label {
+  font-size: 12px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.kpi-card .value {
+  font-size: 32px;
+  font-weight: 700;
+  color: #1a3d6e;
+  line-height: 1;
+}
+
+.kpi-card .sub {
+  font-size: 12px;
+  color: #666;
+  margin-top: 4px;
+}
+
+.kpi-card.distinguished { border-left-color: #2e7d32; }
+.kpi-card.proficient { border-left-color: #1a5490; }
+.kpi-card.developing { border-left-color: #f9a825; }
+.kpi-card.beginning { border-left-color: #c62828; }
+
+/* ========== CHART CARDS ========== */
+.chart-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.chart-card {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.chart-card h3 {
+  color: #1a3d6e;
+  font-size: 15px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #1a5490;
+}
+
+.chart-container {
+  position: relative;
+  height: 300px;
+}
+
+.chart-container.tall { height: 380px; }
+
+/* ========== FULL WIDTH CARDS ========== */
+.full-card {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  margin-bottom: 20px;
+}
+
+.full-card h3 {
+  color: #1a3d6e;
+  font-size: 15px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #1a5490;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* ========== STUDENT TABLE ========== */
+.student-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.student-table thead {
+  background: #1a3d6e;
+  color: #fff;
+}
+
+.student-table th {
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.student-table th:hover { background: #0f2a4d; }
+.student-table th.sorted-asc::after { content: " ▲"; }
+.student-table th.sorted-desc::after { content: " ▼"; }
+
+.student-table tbody tr {
+  border-bottom: 1px solid #e0e4e8;
+}
+
+.student-table tbody tr:hover { background: #f8fafc; }
+
+.student-table td {
+  padding: 10px 12px;
+  vertical-align: middle;
+}
+
+.student-table td.name { font-weight: 600; color: #1a3d6e; }
+
+.level-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.level-badge.distinguished { background: #c8e6c9; color: #1b5e20; }
+.level-badge.proficient { background: #bbdefb; color: #0d47a1; }
+.level-badge.developing { background: #fff9c4; color: #f57f17; }
+.level-badge.beginning { background: #ffcdd2; color: #b71c1c; }
+
+.mini-bar {
+  display: inline-block;
+  width: 60px;
+  height: 8px;
+  background: #e0e4e8;
+  border-radius: 4px;
+  vertical-align: middle;
+  margin-left: 6px;
+  overflow: hidden;
+}
+
+.mini-bar-fill {
+  height: 100%;
+  background: #1a5490;
+  border-radius: 4px;
+}
+
+/* ========== VOCAB HEATMAP ========== */
+.heatmap {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 4px;
+  margin-top: 12px;
+}
+
+.heatmap-cell {
+  aspect-ratio: 1;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: #333;
+  cursor: default;
+  position: relative;
+  padding: 2px;
+  text-align: center;
+}
+
+.heatmap-cell .q-num { font-size: 11px; font-weight: 700; }
+.heatmap-cell .flag-count { font-size: 10px; opacity: 0.85; }
+
+.heatmap-cell.heat-0 { background: #f0f4f8; color: #999; }
+.heatmap-cell.heat-1 { background: #fff9c4; }
+.heatmap-cell.heat-2 { background: #ffe082; }
+.heatmap-cell.heat-3 { background: #ffb74d; }
+.heatmap-cell.heat-4 { background: #ff8a65; color: #fff; }
+.heatmap-cell.heat-5 { background: #e53935; color: #fff; }
+
+.heatmap-legend {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 12px;
+  font-size: 12px;
+  color: #666;
+  flex-wrap: wrap;
+}
+
+.legend-swatch {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
+/* ========== DOMAIN WEAKNESS LIST ========== */
+.weakness-list {
+  list-style: none;
+}
+
+.weakness-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  gap: 14px;
+}
+
+.weakness-rank {
+  background: #1a5490;
+  color: #fff;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.weakness-rank.top-3 { background: #c62828; }
+
+.weakness-name {
+  flex: 1;
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+}
+
+.weakness-bar {
+  flex: 2;
+  height: 12px;
+  background: #e0e4e8;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.weakness-bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.6s;
+}
+
+.weakness-score {
+  flex: 0 0 70px;
+  text-align: right;
+  font-weight: 600;
+  color: #1a3d6e;
+  font-size: 14px;
+}
+
+/* ========== EMPTY STATE ========== */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #999;
+  font-size: 15px;
+}
+
+.empty-state .icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+/* ========== EXPORT ========== */
+.export-btn {
+  background: #2e7d32;
+  color: #fff;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.export-btn:hover { background: #1b5e20; }
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 900px) {
+  .chart-grid { grid-template-columns: 1fr; }
+  .heatmap { grid-template-columns: repeat(6, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<!-- ========== CONFIG SCREEN ========== -->
+<div id="configScreen">
+  <div class="config-card">
+    <h1>Algebra GM Teacher Dashboard</h1>
+    <p class="subtitle">Class-period results, vocabulary flag heatmap, and domain weakness analysis</p>
+
+    <div class="setup-steps">
+      <strong>One-time setup</strong> (first time only):
+      <ol>
+        <li>Open your <strong>Algebra GM Simulation Results</strong> Google Sheet.</li>
+        <li>Click <strong>File → Share → Publish to web</strong>.</li>
+        <li>In the dropdown, select the <strong>Results</strong> sheet and choose <strong>Comma-separated values (.csv)</strong>.</li>
+        <li>Click <strong>Publish</strong>, confirm, then copy the published URL.</li>
+        <li>Paste the URL below. Your dashboard will save it in your browser for next time.</li>
+      </ol>
+    </div>
+
+    <div class="form-group">
+      <label for="csvUrl">Published CSV URL</label>
+      <input type="text" id="csvUrl" placeholder="https://docs.google.com/spreadsheets/d/e/..../pub?output=csv">
+    </div>
+
+    <button class="load-btn" id="loadBtn" onclick="loadData()">Load Results</button>
+    <div class="error-msg" id="errorMsg"></div>
+  </div>
+</div>
+
+<!-- ========== DASHBOARD SCREEN ========== -->
+<div id="dashboardScreen">
+  <div class="header">
+    <h1>Algebra: Concepts &amp; Connections — Teacher Dashboard</h1>
+    <div class="subtitle">Georgia Milestones EOC Practice Simulation · McIntosh County Schools</div>
+  </div>
+
+  <div class="dash-container">
+
+    <!-- Filter bar -->
+    <div class="filter-bar">
+      <label for="periodFilter">Period:</label>
+      <select id="periodFilter" onchange="applyFilters()">
+        <option value="all">All periods</option>
+      </select>
+
+      <label for="studentSearch">Student:</label>
+      <input type="text" id="studentSearch" placeholder="Search by name..." oninput="applyFilters()" style="width: 200px;">
+
+      <label for="latestOnly">
+        <input type="checkbox" id="latestOnly" checked onchange="applyFilters()">
+        Latest attempt per student only
+      </label>
+
+      <button class="refresh-btn" onclick="refreshData()">↻ Refresh Data</button>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid" id="kpiGrid"></div>
+
+    <!-- Charts -->
+    <div class="chart-grid">
+      <div class="chart-card">
+        <h3>Achievement Level Distribution</h3>
+        <div class="chart-container"><canvas id="levelChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>Average Score by Domain</h3>
+        <div class="chart-container"><canvas id="domainChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="chart-grid">
+      <div class="chart-card">
+        <h3>DOK Performance (Class Average)</h3>
+        <div class="chart-container"><canvas id="dokChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>Score Distribution (Histogram)</h3>
+        <div class="chart-container"><canvas id="histogramChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Domain weakness ranking -->
+    <div class="full-card">
+      <h3>Domain Weakness Ranking <span style="font-weight: normal; font-size: 12px; color: #666;">(lowest average first — where to focus instruction)</span></h3>
+      <ul class="weakness-list" id="weaknessList"></ul>
+    </div>
+
+    <!-- Vocab flag heatmap -->
+    <div class="full-card">
+      <h3>Vocabulary Flag Heatmap <span style="font-weight: normal; font-size: 12px; color: #666;">(items flagged most often — vocabulary was a barrier)</span></h3>
+      <div class="heatmap" id="vocabHeatmap"></div>
+      <div class="heatmap-legend">
+        <span><span class="legend-swatch" style="background:#f0f4f8;"></span>0 flags</span>
+        <span><span class="legend-swatch" style="background:#fff9c4;"></span>1</span>
+        <span><span class="legend-swatch" style="background:#ffe082;"></span>2</span>
+        <span><span class="legend-swatch" style="background:#ffb74d;"></span>3</span>
+        <span><span class="legend-swatch" style="background:#ff8a65;"></span>4</span>
+        <span><span class="legend-swatch" style="background:#e53935;"></span>5+</span>
+      </div>
+    </div>
+
+    <!-- Student roster table -->
+    <div class="full-card">
+      <h3>
+        Student Results
+        <button class="export-btn" onclick="exportCSV()">↓ Export CSV</button>
+      </h3>
+      <div style="overflow-x: auto;">
+        <table class="student-table" id="studentTable">
+          <thead>
+            <tr>
+              <th onclick="sortTable('studentName')">Student</th>
+              <th onclick="sortTable('period')">Pd</th>
+              <th onclick="sortTable('overallScore')">Score</th>
+              <th onclick="sortTable('achievementLevel')">Level</th>
+              <th onclick="sortTable('gsrPct')">GSR</th>
+              <th onclick="sortTable('nrPct')">NR</th>
+              <th onclick="sortTable('parPct')">PAR</th>
+              <th onclick="sortTable('fgrPct')">FGR</th>
+              <th onclick="sortTable('dsrPct')">DSR</th>
+              <th onclick="sortTable('vocabFlagCount')">Vocab🚩</th>
+              <th onclick="sortTable('timestamp')">Date</th>
+            </tr>
+          </thead>
+          <tbody id="studentTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let rawData = [];
+let filteredData = [];
+let charts = {};
+let sortState = { column: 'timestamp', direction: 'desc' };
+
+const STORAGE_KEY = 'algebraGM_dashboard_csvUrl';
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  const savedUrl = localStorage.getItem(STORAGE_KEY);
+  if (savedUrl) {
+    document.getElementById('csvUrl').value = savedUrl;
+  }
+});
+
+// ============================================================
+// LOAD DATA
+// ============================================================
+async function loadData() {
+  const url = document.getElementById('csvUrl').value.trim();
+  const errorEl = document.getElementById('errorMsg');
+  errorEl.classList.remove('show');
+
+  if (!url) {
+    errorEl.textContent = 'Please paste your published CSV URL.';
+    errorEl.classList.add('show');
+    return;
+  }
+
+  if (!url.includes('docs.google.com')) {
+    errorEl.textContent = 'URL should be a Google Sheets published CSV link (contains "docs.google.com").';
+    errorEl.classList.add('show');
+    return;
+  }
+
+  const loadBtn = document.getElementById('loadBtn');
+  loadBtn.disabled = true;
+  loadBtn.textContent = 'Loading...';
+
+  try {
+    const csvText = await fetchCSV(url);
+
+    const results = Papa.parse(csvText, {
+      header: true,
+      skipEmptyLines: true
+    });
+
+    loadBtn.disabled = false;
+    loadBtn.textContent = 'Load Results';
+
+    if (!results.data || results.data.length === 0) {
+      errorEl.textContent = 'No student results found yet. Students need to complete the simulation first.';
+      errorEl.classList.add('show');
+      return;
+    }
+
+    localStorage.setItem(STORAGE_KEY, url);
+    rawData = processRawData(results.data);
+    document.getElementById('configScreen').style.display = 'none';
+    document.getElementById('dashboardScreen').style.display = 'block';
+    initDashboard();
+
+  } catch (err) {
+    loadBtn.disabled = false;
+    loadBtn.textContent = 'Load Results';
+    errorEl.textContent = 'Could not load CSV. ' + err.message;
+    errorEl.classList.add('show');
+  }
+}
+
+async function fetchCSV(url) {
+  const fetchUrl = url + (url.includes('?') ? '&' : '?') + '_cb=' + Date.now();
+  const response = await fetch(fetchUrl, {
+    method: 'GET',
+    redirect: 'follow'
+  });
+  if (!response.ok) {
+    throw new Error('Response status: ' + response.status);
+  }
+  return await response.text();
+}
+
+async function refreshData() {
+  const url = localStorage.getItem(STORAGE_KEY);
+  if (!url) return;
+
+  try {
+    const csvText = await fetchCSV(url);
+    const results = Papa.parse(csvText, {
+      header: true,
+      skipEmptyLines: true
+    });
+    rawData = processRawData(results.data);
+    applyFilters();
+  } catch (err) {
+    alert('Could not refresh data: ' + err.message);
+  }
+}
+
+// ============================================================
+// PROCESS RAW CSV DATA
+// ============================================================
+function processRawData(rows) {
+  return rows.map(row => {
+    const scoreStr = row['Overall Score'] || '0%';
+    const score = parseInt(scoreStr) || 0;
+
+    const parseScore = (str) => {
+      if (!str) return { earned: 0, possible: 0, pct: 0 };
+      const parts = str.split('/');
+      const earned = parseInt(parts[0]) || 0;
+      const possible = parseInt(parts[1]) || 0;
+      const pct = possible > 0 ? Math.round((earned / possible) * 100) : 0;
+      return { earned, possible, pct };
+    };
+
+    const gsr = parseScore(row['A.GSR.3 (Geometric)']);
+    const nr = parseScore(row['A.NR.5 (Numerical)']);
+    const par = parseScore(row['A.PAR (Patterning)']);
+    const fgr = parseScore(row['A.FGR (Functional)']);
+    const dsr = parseScore(row['A.DSR.10 (Data)']);
+
+    const dok1 = parseScore(row['DOK 1']);
+    const dok2 = parseScore(row['DOK 2']);
+    const dok3 = parseScore(row['DOK 3']);
+
+    let vocabFlags = [];
+    const flagStr = row['Vocab Flags (Item #s)'] || '';
+    if (flagStr.trim()) {
+      vocabFlags = flagStr.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+    }
+
+    return {
+      timestamp: new Date(row['Timestamp']),
+      timestampRaw: row['Timestamp'],
+      studentName: row['Student Name'] || 'Unknown',
+      period: row['Period'] || '',
+      overallScore: score,
+      pointsEarned: row['Points Earned'] || '',
+      itemsCorrect: row['Items Correct'] || '',
+      achievementLevel: row['Achievement Level'] || 'Beginning Learner',
+      gsr, nr, par, fgr, dsr,
+      gsrPct: gsr.pct, nrPct: nr.pct, parPct: par.pct, fgrPct: fgr.pct, dsrPct: dsr.pct,
+      dok1, dok2, dok3,
+      dok1Pct: dok1.pct, dok2Pct: dok2.pct, dok3Pct: dok3.pct,
+      vocabFlagCount: parseInt(row['Vocab Flag Count']) || 0,
+      vocabFlags: vocabFlags,
+      timeSpent: row['Time Spent'] || ''
+    };
+  });
+}
+
+// ============================================================
+// INIT DASHBOARD
+// ============================================================
+function initDashboard() {
+  // Populate period filter
+  const periods = [...new Set(rawData.map(r => r.period))].sort();
+  const periodFilter = document.getElementById('periodFilter');
+  periodFilter.innerHTML = '<option value="all">All periods</option>';
+  periods.forEach(p => {
+    if (p) {
+      const opt = document.createElement('option');
+      opt.value = p;
+      opt.textContent = `Period ${p}`;
+      periodFilter.appendChild(opt);
+    }
+  });
+
+  applyFilters();
+}
+
+// ============================================================
+// FILTER
+// ============================================================
+function applyFilters() {
+  const period = document.getElementById('periodFilter').value;
+  const search = document.getElementById('studentSearch').value.toLowerCase().trim();
+  const latestOnly = document.getElementById('latestOnly').checked;
+
+  let data = rawData.slice();
+
+  if (period !== 'all') {
+    data = data.filter(r => r.period === period);
+  }
+
+  if (search) {
+    data = data.filter(r => r.studentName.toLowerCase().includes(search));
+  }
+
+  if (latestOnly) {
+    const byName = {};
+    data.forEach(r => {
+      const key = `${r.studentName}_${r.period}`;
+      if (!byName[key] || r.timestamp > byName[key].timestamp) {
+        byName[key] = r;
+      }
+    });
+    data = Object.values(byName);
+  }
+
+  filteredData = data;
+  renderAll();
+}
+
+// ============================================================
+// RENDER ALL
+// ============================================================
+function renderAll() {
+  renderKPIs();
+  renderLevelChart();
+  renderDomainChart();
+  renderDOKChart();
+  renderHistogram();
+  renderWeaknessList();
+  renderVocabHeatmap();
+  renderStudentTable();
+}
+
+// ============================================================
+// KPIs
+// ============================================================
+function renderKPIs() {
+  const n = filteredData.length;
+  if (n === 0) {
+    document.getElementById('kpiGrid').innerHTML = `
+      <div class="empty-state" style="grid-column: 1/-1;">
+        <div class="icon">📊</div>
+        <p>No student results match the current filters.</p>
+      </div>`;
+    return;
+  }
+
+  const avgScore = Math.round(filteredData.reduce((s, r) => s + r.overallScore, 0) / n);
+
+  const levels = { 'Distinguished Learner': 0, 'Proficient Learner': 0,
+                   'Developing Learner': 0, 'Beginning Learner': 0 };
+  filteredData.forEach(r => {
+    if (levels[r.achievementLevel] !== undefined) levels[r.achievementLevel]++;
+  });
+
+  const proficientPlus = levels['Distinguished Learner'] + levels['Proficient Learner'];
+  const proficientPct = Math.round((proficientPlus / n) * 100);
+
+  const totalFlags = filteredData.reduce((s, r) => s + r.vocabFlagCount, 0);
+  const avgFlags = (totalFlags / n).toFixed(1);
+
+  document.getElementById('kpiGrid').innerHTML = `
+    <div class="kpi-card">
+      <div class="label">Students</div>
+      <div class="value">${n}</div>
+      <div class="sub">attempts in view</div>
+    </div>
+    <div class="kpi-card">
+      <div class="label">Class Average</div>
+      <div class="value">${avgScore}%</div>
+      <div class="sub">overall score</div>
+    </div>
+    <div class="kpi-card proficient">
+      <div class="label">Proficient+</div>
+      <div class="value">${proficientPct}%</div>
+      <div class="sub">${proficientPlus} of ${n} students</div>
+    </div>
+    <div class="kpi-card distinguished">
+      <div class="label">Distinguished</div>
+      <div class="value">${levels['Distinguished Learner']}</div>
+      <div class="sub">students at highest level</div>
+    </div>
+    <div class="kpi-card beginning">
+      <div class="label">Beginning</div>
+      <div class="value">${levels['Beginning Learner']}</div>
+      <div class="sub">need substantial support</div>
+    </div>
+    <div class="kpi-card">
+      <div class="label">Vocab Flags</div>
+      <div class="value">${totalFlags}</div>
+      <div class="sub">${avgFlags} avg per student</div>
+    </div>
+  `;
+}
+
+// ============================================================
+// CHARTS
+// ============================================================
+function destroyChart(name) {
+  if (charts[name]) { charts[name].destroy(); delete charts[name]; }
+}
+
+function renderLevelChart() {
+  destroyChart('level');
+  const levels = { 'Distinguished Learner': 0, 'Proficient Learner': 0,
+                   'Developing Learner': 0, 'Beginning Learner': 0 };
+  filteredData.forEach(r => {
+    if (levels[r.achievementLevel] !== undefined) levels[r.achievementLevel]++;
+  });
+
+  charts.level = new Chart(document.getElementById('levelChart'), {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(levels),
+      datasets: [{
+        data: Object.values(levels),
+        backgroundColor: ['#2e7d32', '#1a5490', '#f9a825', '#c62828'],
+        borderWidth: 2,
+        borderColor: '#fff'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { font: { size: 12 }, padding: 10 } }
+      }
+    }
+  });
+}
+
+function renderDomainChart() {
+  destroyChart('domain');
+  const n = filteredData.length || 1;
+
+  const avgs = {
+    GSR: Math.round(filteredData.reduce((s, r) => s + r.gsrPct, 0) / n),
+    NR:  Math.round(filteredData.reduce((s, r) => s + r.nrPct, 0) / n),
+    PAR: Math.round(filteredData.reduce((s, r) => s + r.parPct, 0) / n),
+    FGR: Math.round(filteredData.reduce((s, r) => s + r.fgrPct, 0) / n),
+    DSR: Math.round(filteredData.reduce((s, r) => s + r.dsrPct, 0) / n)
+  };
+
+  const labels = [
+    'Geometric (GSR.3)',
+    'Numerical (NR.5)',
+    'Patterning (PAR)',
+    'Functional (FGR)',
+    'Data (DSR.10)'
+  ];
+
+  charts.domain = new Chart(document.getElementById('domainChart'), {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Class Average %',
+        data: [avgs.GSR, avgs.NR, avgs.PAR, avgs.FGR, avgs.DSR],
+        backgroundColor: [avgs.GSR, avgs.NR, avgs.PAR, avgs.FGR, avgs.DSR].map(v =>
+          v >= 80 ? '#2e7d32' : v >= 60 ? '#1a5490' : v >= 35 ? '#f9a825' : '#c62828'
+        ),
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' } }
+      },
+      plugins: { legend: { display: false } }
+    }
+  });
+}
+
+function renderDOKChart() {
+  destroyChart('dok');
+  const n = filteredData.length || 1;
+  const avgs = {
+    dok1: Math.round(filteredData.reduce((s, r) => s + r.dok1Pct, 0) / n),
+    dok2: Math.round(filteredData.reduce((s, r) => s + r.dok2Pct, 0) / n),
+    dok3: Math.round(filteredData.reduce((s, r) => s + r.dok3Pct, 0) / n)
+  };
+
+  charts.dok = new Chart(document.getElementById('dokChart'), {
+    type: 'bar',
+    data: {
+      labels: ['DOK 1 (Recall)', 'DOK 2 (Skill/Concept)', 'DOK 3 (Strategic Thinking)'],
+      datasets: [{
+        label: 'Class Average %',
+        data: [avgs.dok1, avgs.dok2, avgs.dok3],
+        backgroundColor: ['#81d4fa', '#1a5490', '#1a3d6e'],
+        borderRadius: 4
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' } }
+      },
+      plugins: { legend: { display: false } }
+    }
+  });
+}
+
+function renderHistogram() {
+  destroyChart('hist');
+  const bins = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];  // 0-9, 10-19, ..., 90-100
+  filteredData.forEach(r => {
+    const binIdx = Math.min(Math.floor(r.overallScore / 10), 9);
+    bins[binIdx]++;
+  });
+  const labels = ['0-9', '10-19', '20-29', '30-34', '35-49', '50-59', '60-69', '70-79', '80-89', '90-100'];
+
+  // Color by achievement level cut
+  const colors = labels.map((_, i) => {
+    if (i >= 8) return '#2e7d32';       // 80+ Distinguished
+    if (i >= 6) return '#1a5490';       // 60-79 Proficient
+    if (i >= 4) return '#f9a825';       // 35-59 Developing
+    return '#c62828';                    // 0-34 Beginning
+  });
+
+  charts.hist = new Chart(document.getElementById('histogramChart'), {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Students',
+        data: bins,
+        backgroundColor: colors,
+        borderRadius: 3
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: { beginAtZero: true, ticks: { precision: 0 } }
+      },
+      plugins: { legend: { display: false } }
+    }
+  });
+}
+
+// ============================================================
+// DOMAIN WEAKNESS LIST
+// ============================================================
+function renderWeaknessList() {
+  const n = filteredData.length || 1;
+  const domains = [
+    { key: 'GSR', name: 'Geometric & Spatial Reasoning (A.GSR.3)',
+      pct: Math.round(filteredData.reduce((s, r) => s + r.gsrPct, 0) / n) },
+    { key: 'NR', name: 'Numerical Reasoning (A.NR.5)',
+      pct: Math.round(filteredData.reduce((s, r) => s + r.nrPct, 0) / n) },
+    { key: 'PAR', name: 'Patterning & Algebraic Reasoning (A.PAR.4, .6, .8)',
+      pct: Math.round(filteredData.reduce((s, r) => s + r.parPct, 0) / n) },
+    { key: 'FGR', name: 'Functional & Graphical Reasoning (A.FGR.2, .7, .9)',
+      pct: Math.round(filteredData.reduce((s, r) => s + r.fgrPct, 0) / n) },
+    { key: 'DSR', name: 'Data & Statistical Reasoning (A.DSR.10)',
+      pct: Math.round(filteredData.reduce((s, r) => s + r.dsrPct, 0) / n) }
+  ];
+
+  domains.sort((a, b) => a.pct - b.pct);
+
+  let html = '';
+  domains.forEach((d, i) => {
+    const color = d.pct >= 80 ? '#2e7d32' : d.pct >= 60 ? '#1a5490' : d.pct >= 35 ? '#f9a825' : '#c62828';
+    html += `<li class="weakness-item">
+               <div class="weakness-rank ${i < 3 ? 'top-3' : ''}">${i + 1}</div>
+               <div class="weakness-name">${d.name}</div>
+               <div class="weakness-bar">
+                 <div class="weakness-bar-fill" style="width: ${d.pct}%; background: ${color};"></div>
+               </div>
+               <div class="weakness-score">${d.pct}%</div>
+             </li>`;
+  });
+  document.getElementById('weaknessList').innerHTML = html;
+}
+
+// ============================================================
+// VOCAB FLAG HEATMAP
+// ============================================================
+function renderVocabHeatmap() {
+  // Count flags per item (1-50 scored, 51-55 field test)
+  const flagCounts = {};
+  for (let i = 1; i <= 55; i++) flagCounts[i] = 0;
+
+  filteredData.forEach(r => {
+    r.vocabFlags.forEach(itemNum => {
+      if (flagCounts[itemNum] !== undefined) flagCounts[itemNum]++;
+    });
+  });
+
+  let html = '';
+  for (let i = 1; i <= 50; i++) {
+    const count = flagCounts[i];
+    let heatClass = 'heat-0';
+    if (count >= 5) heatClass = 'heat-5';
+    else if (count === 4) heatClass = 'heat-4';
+    else if (count === 3) heatClass = 'heat-3';
+    else if (count === 2) heatClass = 'heat-2';
+    else if (count === 1) heatClass = 'heat-1';
+
+    html += `<div class="heatmap-cell ${heatClass}" title="Item ${i}: ${count} flag${count === 1 ? '' : 's'}">
+               <div class="q-num">${i}</div>
+               <div class="flag-count">${count > 0 ? count : ''}</div>
+             </div>`;
+  }
+  document.getElementById('vocabHeatmap').innerHTML = html;
+}
+
+// ============================================================
+// STUDENT TABLE
+// ============================================================
+function sortTable(column) {
+  if (sortState.column === column) {
+    sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortState.column = column;
+    sortState.direction = 'asc';
+  }
+  renderStudentTable();
+}
+
+function renderStudentTable() {
+  const data = filteredData.slice().sort((a, b) => {
+    let av = a[sortState.column];
+    let bv = b[sortState.column];
+    if (av instanceof Date) { av = av.getTime(); bv = bv.getTime(); }
+    if (typeof av === 'string') { av = av.toLowerCase(); bv = bv.toLowerCase(); }
+    if (av < bv) return sortState.direction === 'asc' ? -1 : 1;
+    if (av > bv) return sortState.direction === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  // Update header arrows
+  document.querySelectorAll('.student-table th').forEach(th => {
+    th.classList.remove('sorted-asc', 'sorted-desc');
+  });
+  const ths = document.querySelectorAll('.student-table th');
+  const colIdx = ['studentName', 'period', 'overallScore', 'achievementLevel',
+                  'gsrPct', 'nrPct', 'parPct', 'fgrPct', 'dsrPct',
+                  'vocabFlagCount', 'timestamp'].indexOf(sortState.column);
+  if (colIdx >= 0 && ths[colIdx]) {
+    ths[colIdx].classList.add(sortState.direction === 'asc' ? 'sorted-asc' : 'sorted-desc');
+  }
+
+  const levelClass = (level) => {
+    if (level.includes('Distinguished')) return 'distinguished';
+    if (level.includes('Proficient')) return 'proficient';
+    if (level.includes('Developing')) return 'developing';
+    return 'beginning';
+  };
+
+  const miniBar = (pct) => `${pct}%<div class="mini-bar"><div class="mini-bar-fill" style="width: ${pct}%;"></div></div>`;
+
+  let html = '';
+  data.forEach(r => {
+    const dateStr = r.timestamp.toLocaleDateString() + ' ' + r.timestamp.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+    html += `<tr>
+               <td class="name">${r.studentName}</td>
+               <td>${r.period}</td>
+               <td><strong>${r.overallScore}%</strong></td>
+               <td><span class="level-badge ${levelClass(r.achievementLevel)}">${r.achievementLevel.replace(' Learner', '')}</span></td>
+               <td>${miniBar(r.gsrPct)}</td>
+               <td>${miniBar(r.nrPct)}</td>
+               <td>${miniBar(r.parPct)}</td>
+               <td>${miniBar(r.fgrPct)}</td>
+               <td>${miniBar(r.dsrPct)}</td>
+               <td>${r.vocabFlagCount > 0 ? '🚩 ' + r.vocabFlagCount : '—'}</td>
+               <td style="font-size: 12px; color: #666;">${dateStr}</td>
+             </tr>`;
+  });
+
+  if (data.length === 0) {
+    html = '<tr><td colspan="11" style="text-align: center; padding: 40px; color: #999;">No results match the current filters.</td></tr>';
+  }
+
+  document.getElementById('studentTableBody').innerHTML = html;
+}
+
+// ============================================================
+// EXPORT CSV
+// ============================================================
+function exportCSV() {
+  if (filteredData.length === 0) {
+    alert('No data to export.');
+    return;
+  }
+
+  const headers = [
+    'Student Name', 'Period', 'Overall Score', 'Achievement Level',
+    'GSR %', 'NR %', 'PAR %', 'FGR %', 'DSR %',
+    'DOK 1 %', 'DOK 2 %', 'DOK 3 %',
+    'Vocab Flag Count', 'Vocab Flag Items', 'Time Spent', 'Date'
+  ];
+
+  const rows = filteredData.map(r => [
+    r.studentName, r.period, r.overallScore + '%', r.achievementLevel,
+    r.gsrPct + '%', r.nrPct + '%', r.parPct + '%', r.fgrPct + '%', r.dsrPct + '%',
+    r.dok1Pct + '%', r.dok2Pct + '%', r.dok3Pct + '%',
+    r.vocabFlagCount, r.vocabFlags.join('; '), r.timeSpent,
+    r.timestamp.toLocaleString()
+  ]);
+
+  const csv = [headers, ...rows].map(row =>
+    row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+  ).join('\n');
+
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `algebra-gm-results-${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+</script>
+
+</body>
+</html>

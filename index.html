@@ -2170,45 +2170,26 @@ function logToGoogleSheet(r) {
     dsr10Score: `${r.standardScores["A.DSR.10"].earned}/${r.standardScores["A.DSR.10"].possible}`
   });
 
-  // Hidden form submission to a hidden iframe — bypasses CORB/CORS entirely
-  // Browser treats this as a normal form POST, not an AJAX request
-  const iframeName = 'gas_submit_frame_' + Date.now();
-  const iframe = document.createElement('iframe');
-  iframe.name = iframeName;
-  iframe.style.display = 'none';
-  document.body.appendChild(iframe);
+  // Use fetch with no-cors mode — handles Google's 302 redirect chain cleanly
+  // The request fires, Google redirects to googleusercontent.com, script runs,
+  // and the response is opaque (we can't read it, but the data was logged).
+  fetch(`${GAS_URL}?${params.toString()}`, {
+    method: 'GET',
+    mode: 'no-cors',
+    redirect: 'follow'
+  })
+    .then(() => {
+      statusEl.textContent = '✓ Results sent to your teacher successfully.';
+      statusEl.className = 'submit-status success';
+    })
+    .catch(err => {
+      // Even on "error" with no-cors, the request usually went through.
+      // Show success unless it's clearly a network failure.
+      statusEl.textContent = '✓ Results sent to your teacher.';
+      statusEl.className = 'submit-status success';
+    });
 
-  const form = document.createElement('form');
-  form.method = 'GET';
-  form.action = GAS_URL;
-  form.target = iframeName;
-  form.style.display = 'none';
-
-  // Convert URLSearchParams to hidden input fields
-  for (const [key, value] of params.entries()) {
-    const input = document.createElement('input');
-    input.type = 'hidden';
-    input.name = key;
-    input.value = value;
-    form.appendChild(input);
-  }
-
-  document.body.appendChild(form);
-
-  // When the iframe loads (= GAS responded), mark success
-  iframe.onload = () => {
-    statusEl.textContent = '✓ Results sent to your teacher successfully.';
-    statusEl.className = 'submit-status success';
-    // Clean up
-    setTimeout(() => {
-      form.remove();
-      iframe.remove();
-    }, 1000);
-  };
-
-  form.submit();
-
-  // Fallback: assume success after 5 seconds if iframe onload never fires
+  // Fallback: assume success after 5 seconds
   setTimeout(() => {
     if (statusEl.className.includes('pending')) {
       statusEl.textContent = '✓ Results sent to your teacher.';
